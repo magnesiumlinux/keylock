@@ -63,14 +63,18 @@ void serve(int sock) {
     key = strtok(NULL, " ");
     val = strtok(NULL, " ");
 
-    if ( ! cmd ) {
+    if ( ! cmd || ! key ) {
        len = snprintf(outbuf, SZ, "BAD");
     }
     else if ( !strcmp(cmd, "set") ) {
-        fprintf(stderr, "set: %s: %s\n",  key, "<hidden>");
-        old_val = mote_set(key, xstrdup(val));
-        if ( old_val ) free(old_val);
-        len = snprintf(outbuf, SZ, "OK");
+        if ( ! val ){
+            len = snprintf(outbuf, SZ, "BAD");
+        } else {
+            fprintf(stderr, "set: %s: %s\n",  key, "<hidden>");
+            old_val = mote_set(key, xstrdup(val));
+            if ( old_val ) free(old_val);
+            len = snprintf(outbuf, SZ, "OK");
+        }
     }
     else if ( !strcmp(cmd, "get") ) {
         fprintf(stderr, "get: %s\n", key);
@@ -81,6 +85,7 @@ void serve(int sock) {
             len = snprintf(outbuf, SZ, "NO");
         }
     }
+
     else if ( !strcmp(cmd, "del") ) {
         fprintf(stderr, "del: %s\n", key);
         val = (char *) mote_get(key);
