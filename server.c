@@ -5,6 +5,7 @@
 
 #include <errno.h>
 #include <fcntl.h>
+#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -108,14 +109,27 @@ void serve(int sock) {
 }
 
 
+void write_on_quit(int signum) {
+    fprintf(stderr, "Exit on signal %d\n", signum);
+    exit(0);
+}
+
 
 int do_server() {
     int master_sock, connsock;
+    struct sigaction siggy;
 
     mote_test_init();
 
+    /* install signal handler */
+    siggy.sa_handler = write_on_quit;
+    sigfillset(&siggy.sa_mask);
+    sigaction(SIGTERM, &siggy, NULL);
+
+   /* read data from stdin */
+
     master_sock = waitsocket();
-    printf("ready.\n");
+    fprintf(stderr, "ready.\n");
 
     for (;;) {
         connsock = accept(master_sock, NULL, NULL);
