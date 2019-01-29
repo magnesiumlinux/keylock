@@ -113,28 +113,32 @@ void serve(int sock) {
     close(sock);
 }
 
-void read_on_init() {
+void read_data() {
     char line[SZ], *key, *val, *old_val;
     int len;
 
-    while ( (len=read(0, line, SZ)) ) {
+    while ( fgets(line, SZ, stdin) ) {
         key=strtok(line, " ");
         val=strtok(NULL, "\n");
         if ( !key || !val ) die("invalid init data");
         old_val = mote_set(key, xstrdup(val));
         if ( old_val ) free(old_val);
     }
+    fclose(stdin);
 }
 
-void write_on_quit(int signum) {
+void write_data(int signum) {
     char *key;
 
     fprintf(stderr, "Caught signal %d, writing save file\n", signum);
     mote_rewind();
     while ( (key=mote_next()) ) {
         printf("%s %s\n", key, (char *) mote_get(key));
-    }    
-    exit(0);
+    }
+    fclose(stdout);
+    if ( signum == SIGTERM ) {
+        exit(0);
+    }
 }
 
 
@@ -145,12 +149,14 @@ int do_server() {
     mote_test_init();
 
     /* read data from stdin */
-    read_on_init();
+    read_data();
 
     /* install signal handler */
-    siggy.sa_handler = write_on_quit;
+    siggy.sa_handler = write_data;
     sigfillset(&siggy.sa_mask);
+ 
     sigaction(SIGTERM, &siggy, NULL);
+    sigaction(SIGUSR1, &siggy, NULL);
 
     master_sock = waitsocket();
     fprintf(stderr, "ready.\n");
